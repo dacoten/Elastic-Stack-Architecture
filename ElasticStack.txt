@@ -1,0 +1,184 @@
++ Run filebeat
+sudo chown root filebeat.yml 
+sudo ./filebeat -e
+
+When run filebeat, we need to edit file filebeat.yml, comment code of elasticstash, enable code logstash
+
++ Run logstash ./bin/logstash -f ../config/logstash-sample.conf --config.reload.automatic
+
++ Check config test
+service logstash configtest
+logstash-7.3.0$    bin/logstash -f /etc/logstash/conf.d/first-pipeline.conf --config.test_and_exit
+
+
+"%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}"
+filebeat-7.3.0-2019.08.13
+
+
+input {
+  beats {
+    type => "test"
+    port => 5044
+  }
+}
+
+filter {
+     if[custom_services] == "systemlog" {
+       grok {
+         match => [ "message", "%{SYSLOGLINE}" ]
+         overwrite => [ "message" ]
+       }
+     }
+}
+
+output {
+  elasticsearch {
+    hosts => ["http://localhost:9200"]
+    index => "%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}"
+    #index => "syslog"
+    #user => "elastic"
+    #password => "changeme"
+  }
+}
+
+fields:
+    custom_services: systemlog
+
+${sys:es.logs.base_path}${sys:file.separator}${sys:es.logs.cluster_name}_server.json	
+For example, if your log directory (path.logs) is /var/log/elasticsearch and your cluster is named production then ${sys:es.logs.base_path} will resolve to /var/log/elasticsearch 
+and ${sys:es.logs.base_path}${sys:file.separator}${sys:es.logs.cluster_name}.log will resolve to /var/log/elasticsearch/production.log.	
+	
+	
+	
++ Command elastic
+
+GET /_cat/indices?v&pretty
+
+PUT /customer/_doc/1
+{
+  "name": "John Doe"
+}
+curl -XPUT "http://localhost:9200/customer/_doc/1" -H 'Content-Type: application/json' -d'{  "name": "John Doe"}'
+
+GET /customer/_doc/1
+curl -X GET "localhost:9200/customer/_doc/1?pretty"
+
+// Get all records in index
+GET /customer/_search?q=*&pretty
+
+// Search DSL
+GET /customer/_search
+{
+  "query": { "match_all": {} }
+}
+
+GET /customer/_search
+{
+  "query": { "match": { "name": "Jane John" } }
+}
+
+GET /customer/_search
+{
+  "query": { "match_all": {} }
+}
+
+GET /customer/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        { "match": { "name": "Jane" } },
+        { "match": { "name": "Doe" } }
+      ]
+    }
+  }
+}
+*****************X PACK************
+We can send notify email using: xpack.notification.email.account
+To secure user accses to system: https://www.elastic.co/guide/en/elastic-stack-overview/7.3/elasticsearch-security.html
+We can user IP-based authorization to authorize: https://www.elastic.co/guide/en/elastic-stack-overview/7.3/ip-filtering.html
+
+Built-in roles.
+https://www.elastic.co/guide/en/elastic-stack-overview/7.3/built-in-roles.html
+
+See video: https://www.youtube.com/watch?v=nMh1HWWe6B4
+./elasticsearch-certutil cert
+config/elastic-certificates.p12
+Add in elasticsearch.ymlxpack.security.enabled: true
+https://www.elastic.co/guide/en/elasticsearch/reference/current/configuring-tls.html
+xpack.security.transport.ssl.enabled: true
+xpack.security.transport.ssl.verification_mode: certificate
+xpack.security.transport.ssl.keystore.path: elastic-certificates.p12
+xpack.security.transport.ssl.truststore.path: elastic-certificates.p12
+
+Setup password
+bin$ /elasticsearch-setup-passwords auto
+Changed password for user apm_system
+PASSWORD apm_system = GAB0kXS9RnFWdmIXLi5P
+
+Changed password for user kibana
+PASSWORD kibana = zIxLTSZMWMQ4CsP1uluI
+
+Changed password for user logstash_system
+PASSWORD logstash_system = 53bbMxzngU7YCTWOlT6d
+
+Changed password for user beats_system
+PASSWORD beats_system = FcO1OP8Z6iqxaOtI6Xax
+
+Changed password for user remote_monitoring_user
+PASSWORD remote_monitoring_user = LnyGeydMawufuzXYZITH
+
+Changed password for user elastic
+PASSWORD elastic = TAZVR2l6rYvtiw2P1Kb7
+
+Setup user/password kibana
+
+
+********************Config Filebeat**************
+paths:
+    - /var/log/syslog
+    #- /var/log/*.log
+    #- c:\programdata\elasticsearch\logs\*
+	
+#-------------------------- Elasticsearch output ------------------------------
+#output.elasticsearch:
+  # Array of hosts to connect to.
+  # hosts: ["localhost:9200"]
+
+  # Optional protocol and basic auth credentials.
+  #protocol: "https"
+  #username: "elastic"
+  #password: "changeme"
+
+#----------------------------- Logstash output --------------------------------
+output.logstash:
+  # The Logstash hosts
+  hosts: ["192.168.133.129:5044"]
+
+  # Optional SSL. By default is off.
+  # List of root certificates for HTTPS server verifications
+  #ssl.certificate_authorities: ["/etc/pki/root/ca.pem"]
+
+  # Certificate for SSL client authentication
+  #ssl.certificate: "/etc/pki/client/cert.pem"
+
+  # Client Certificate Key
+  #ssl.key: "/etc/pki/client/cert.key"
+  
+Retrieve log file from distant server with FileBeat
+https://stackoverflow.com/questions/44108556/retrieve-log-file-from-distant-server-with-filebeat
+
+****************************Config kibana*****************************
+Hide/Show menu in kibana https://discuss.elastic.co/t/how-to-hide-some-menus-in-kibana-6-x/118827
+https://discuss.elastic.co/t/how-to-hide-some-menus-in-kibana/80460/9
+
+you might be missing a space there:
+
+console.enabled: false
+timelion.enabled: false
+
+
+*************************************************************
+https://github.com/logstash-plugins/logstash-patterns-core/blob/master/patterns/grok-patterns
+https://grokdebug.herokuapp.com/
+https://discuss.elastic.co/t/multiple-filebeats/153114/7
